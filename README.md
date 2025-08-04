@@ -27,14 +27,21 @@ Le **Shindo Life RP Bot** est un bot Discord polyvalent conçu spécifiquement p
     * `/spin` : Fait tourner une "roue" avec des choix personnalisables.
     * `/renommer` : Renomme les membres sans rôle spécifique en "Nouveau Joueur" (personnalisable).
     * `/poll` : Crée des sondages.
-* **Gestion des Événements et Salons** :
-    * `/event` : Gère les annonces d'événements.
-    * `/ouvrir` & `/fermer` : Ouvre ou ferme des salons spécifiques.
-    * `/queue` : Gère une file d'attente (pour les raids, etc.).
+* **Gestion Avancée des Événements et Salons** :
+    * **`/event` (Commande principale des événements)** :
+        * **`/event creer <nom> <description> <duree> <type> [salon_vocal_perso]`** : Crée et annonce immédiatement un événement.
+        * **`/event programmer <nom> <heures> [minutes] [description] [duree] [type] [salon_vocal_perso]`** : Programme un événement pour une date et une heure futures. Les utilisateurs peuvent s'inscrire en réagissant à l'annonce. L'annonce est mise à jour dynamiquement avec la liste des participants (mentions Discord).
+        * **`/event stop`** : Affiche un sélecteur interactif pour choisir et clôturer un événement programmé ou actif. Une fois clôturé, un récapitulatif final des participants est affiché dans le salon d'annonce, et l'annonce initiale est supprimée.
+    * **`/event-commands` (Commandes d'administration des événements)** :
+        * **`/event-commands lister`** : Liste tous les événements actifs et programmés avec leurs détails.
+        * **`/event-commands modifier`** : Affiche un sélecteur pour choisir un événement et le modifier via un formulaire (nom, description, date/heure, durée, salon vocal).
+        * **`/event-commands supprimer`** : Affiche un sélecteur pour choisir un événement à supprimer. Nécessite une confirmation. L'annonce est également supprimée.
+    * **`/ouvrir` & `/fermer`** : Ouvre ou ferme des salons spécifiques.
+    * **`/queue`** : Gère une file d'attente (pour les raids, etc.).
 * **Statistiques et Configuration** :
     * `/stats` : Affiche diverses statistiques (personnalisable).
     * `/config` : Gère les paramètres de configuration du bot via des commandes.
-* **Persistance des données** : Utilise MongoDB via Mongoose pour stocker les informations importantes (bans temporaires, whitelist, statuts, suivis RP, etc.).
+* **Persistance des données** : Utilise MongoDB via Mongoose pour stocker les informations importantes (bans temporaires, whitelist, statuts, suivis RP, événements programmés, participants, etc.).
 
 ## 🚀 Démarrage Rapide
 
@@ -42,24 +49,39 @@ Suivez ces étapes pour configurer et lancer le bot sur votre serveur Discord.
 
 ### Prérequis
 
-* [Node.js](https://nodejs.org/) (version 16.9.0 ou supérieure, recommandé 20+)
+* [Node.js](https://nodejs.org/) (version 16.9.0 ou supérieure, **recommandé 20+**)
 * [npm](https://www.npmjs.com/) (généralement inclus avec Node.js)
 * Un compte Discord et un [bot créé sur le Portail Développeur Discord](https://discord.com/developers/applications)
 * Une base de données [MongoDB](https://www.mongodb.com/) (locale ou en ligne comme MongoDB Atlas)
+
+### Configuration du Bot Discord
+
+1.  **Créez une nouvelle application** sur le [Portail Développeur Discord](https://discord.com/developers/applications).
+2.  Dans l'onglet **"Bot"** de votre application :
+    * Cliquez sur **"Add Bot"** et confirmez.
+    * Sous "Privileged Gateway Intents", activez les trois options :
+        * `PRESENCE_INTENT`
+        * `GUILD_MEMBERS_INTENT`
+        * `MESSAGE_CONTENT_INTENT`
+    * Copiez le **Token de votre bot**.
+3.  Dans l'onglet **"OAuth2" -> "URL Generator"** :
+    * Sélectionnez l'étendue `bot` et `applications.commands`.
+    * Pour les permissions du bot, sélectionnez au minimum : `Send Messages`, `Embed Links`, `Read Message History`, `Add Reactions`, `Manage Channels`, `Manage Guild` (pour les commandes admin comme `/event` et `/event-commands`).
+    * Copiez le lien généré et collez-le dans votre navigateur pour inviter le bot sur votre serveur.
 
 ### Installation
 
 1.  **Cloner le dépôt :**
     ```bash
-    git clone [https://github.com/](https://github.com/)[VOTRE_NOM_UTILISATEUR]/Shindo-Life-RP-Bot.git
-    cd Shindo-Life-RP-Bot
+    git clone [https://github.com/XavarsCode/shindo-life-bot-v1.git](https://github.com/XavarsCode/shindo-life-bot-v1.git)
+    cd shindo-life-bot-v1
     ```
 
 2.  **Installer les dépendances :**
     ```bash
     npm install
     ```
-    Cela installera toutes les librairies nécessaires, y compris `discord.js`, `mongoose`, `ms` (si utilisé), etc.
+    Cela installera toutes les librairies nécessaires, y compris `discord.js`, `mongoose`, `moment`, etc.
 
 ### Configuration des Variables d'Environnement
 
@@ -73,11 +95,10 @@ Exemple de `.env` (ou secrets Replit) :
 ```dotenv
 TOKEN=VOTRE_TOKEN_BOT_DISCORD
 CLIENT_ID=ID_DE_VOTRE_APPLICATION_BOT
-GUILD_ID=ID_DE_VOTRE_SERVEUR_PRINCIPAL_POUR_LE_DEPLOIEMENT
-MONGO_URI=VOTRE_URL_DE_CONNEXION_MONGODB
+GUILD_ID=ID_DE_VOTRE_SERVEUR_PRINCIPAL_POUR_LE_DEPLOIEMENT # ID du serveur où les commandes slash seront déployées instantanément (en mode dev).
+MONGO_URI=VOTRE_URL_DE_CONNEXION_MONGODB # Ex: mongodb://localhost:27017/mybotdb ou une URI Atlas (format: mongodb+srv://user:password@cluster.mongodb.net/dbname?retryWrites=true&w=majority)
 
-# IDs optionnels pour la configuration du serveur (à récupérer sur Discord en Mode Développeur)
-CHANNEL_ID=ID_DU_SALON_DE_STATUT_OU_ANNONCES
-ROLE_ID=ID_DU_ROLE_STAFF_OU_ADMIN (si utilisé pour certaines permissions)
-RP_VALIDATION_CHANNEL_ID=ID_DU_SALON_DE_VALIDATION_RP
-RP_APPROVED_CHANNEL_ID=ID_DU_SALON_D_ARCHIVES_RP
+# IDs Discord optionnels pour la configuration du bot (à récupérer en activant le Mode Développeur sur Discord)
+# NÉCESSAIRE pour les fonctionnalités d'événements et de gestion
+EVENT_ANNOUNCE_CHANNEL_ID=1401850589708681317 # ID du salon où les annonces d'événements seront envoyées
+PARTICIPATION_EMOJI=✅ # L'emoji que les utilisateurs utiliseront pour s'inscrire aux événements programmés
